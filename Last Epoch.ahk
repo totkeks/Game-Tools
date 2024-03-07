@@ -1,12 +1,18 @@
 #Requires AutoHotkey v2.0+
 #SingleInstance Force
 
+#Include <Steam>
 #Include <WindowManagement>
 #Include <KeyTriggers>
 
-HotIfWinActive "ahk_exe Last Epoch.exe"
+AppID := 899770
+ExecutableName := "Last Epoch.exe"
 
-EnableBorderlessWindow 2560, 1440
+HotIfWinActive "ahk_exe" ExecutableName
+	EnableBorderlessWindow 2560, 1440
 
-; Automatically Roar after Rampage
-SendKeyWhenKeyIsHeldFor "f", "Backspace", 300
+	; Automatically Roar after Rampage
+	SendKeyWhenKeyIsHeldFor "f", "Backspace", 300
+
+CheckForAndAskToCreateStartMenuShortcut(AppID)
+RunGameAndExitWhenClosed(AppID, ExecutableName)
