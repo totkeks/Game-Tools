@@ -97,7 +97,10 @@ CheckForAndAskToCreateStartMenuShortcut(AppID) {
 }
 
 RunGameAndExitWhenClosed(AppID, ExecutableName) {
-	Run("steam://rungameid/" AppID)
+	; don't start the game twice, e.g. when reloading the script
+	if (!ProcessExist(ExecutableName)) {
+		Run("steam://rungameid/" AppID)
+	}
 	ProcessWait(ExecutableName)
 	ProcessWaitClose(ExecutableName)
 	ExitApp()
