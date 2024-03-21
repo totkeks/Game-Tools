@@ -1,107 +1,170 @@
-ReadVdfFromFile(path) {
-	content := FileRead(path)
+#Include ValveKeyValue.ahk
 
-	root := {}
-	stack := [root]
-	state := "start"
-	key := ""
+Class AppInfo {
+	static FIXED_DATA_SIZE := 60
 
-	Loop Parse content {
-		char := A_LoopField
+	__New(buf, &offset) {
+		; Header, 8 bytes
+		this.appID := NumGet(buf, offset, "UInt"), offset += 4
+		this.size := NumGet(buf, offset, "UInt"), offset += 4
 
-		switch (state) {
-			case "start":
-				switch (char) {
-					case "}":
-						stack.RemoveAt(stack.Length)
-					case "`"":
-						state := "parseKey"
-				}
+		; Fixed data, 60 bytes
+		this.infoState := NumGet(buf, offset, "UInt"), offset += 4
+		this.lastUpdated := NumGet(buf, offset, "UInt"), offset += 4
+		this.picsToken := NumGet(buf, offset, "Int64"), offset += 8
+		offset += 20 ; ignore 20 bytes of SHA1
+		this.changeNumber := NumGet(buf, offset, "UInt"), offset += 4
+		offset += 20 ; ignore 20 bytes of SHA1
+		this.dataOffset := offset
+		this.buffer := buf
+		offset += this.size - AppInfo.FIXED_DATA_SIZE
+	}
 
-			case "parseKey":
-				switch (char) {
-					case "`"":
-						state := "findValue"
-					default:
-						key .= char
-				}
-
-			case "findValue":
-				switch (char) {
-					case "{":
-						nestedObject := {}
-						stack[stack.Length].%key% := nestedObject
-						stack.Push(nestedObject)
-						state := "start"
-						key := ""
-					case "`"":
-						state := "readValue"
-				}
-
-			case "readValue":
-				switch (char) {
-					case "`"":
-						stack[stack.Length].%key% := value
-						state := "start"
-						value := ""
-						key := ""
-					default:
-						value .= char
-				}
+	data {
+		get {
+			if (!HasProp(this, "_data")) {
+				this._data := ValveKeyValue.ParseBinary(this.buffer, this.dataOffset, this.size - AppInfo.FIXED_DATA_SIZE)
+			}
+			return this._data
 		}
 	}
 
-	return root
-}
+	Name => this.data.appinfo.common.name
 
-GetLibraryFolders() {
-	vdf := ReadVdfFromFile(EnvGet("ProgramFiles(x86)") "\Steam\steamapps\libraryfolders.vdf")
+	ExecutablePath {
+		get {
+			launch := this.data.appinfo.config.launch
 
-	folders := []
-
-	For index, folder in vdf.libraryfolders.OwnProps() {
-		folders.Push(folder.path)
-	}
-
-	return folders
-}
-
-GetAppDetails(appID) {
-	for folder in GetLibraryFolders() {
-		appmanifestFile := folder "\steamapps\appmanifest_" appID ".acf"
-
-		if (FileExist(appmanifestFile)) {
-			appManifest := ReadVdfFromFile(appmanifestFile)
-
-			return {
-				Name: appManifest.AppState.name,
-				Directory: folder "\steamapps\common\" appManifest.AppState.installdir
+			For index, value in launch.OwnProps() {
+				if (value.config.oslist = "windows") {
+					return value.executable
+				}
 			}
 		}
 	}
-}
 
-CheckForAndAskToCreateStartMenuShortcut(AppID) {
-	appDetails := GetAppDetails(AppID)
-	shortcutPath := A_StartMenu "\Programs\Steam\" appDetails.Name ".lnk"
-
-	if (!FileExist(shortcutPath)) {
-		answer := MsgBox("Currently there is no start menu entry for " appDetails.Name ". Do you want to create a start menu entry to launch this AHK script & " appDetails.Name " together?", "Create Start Menu Shortcut", "YesNo")
-
-		if (answer == "Yes") {
-			; TODO: find a way to get the actual executable location using the Steam console and app_info_print
-			executablePath := appDetails.Directory "\" appDetails.Name ".exe"
-			FileCreateShortcut A_ScriptFullPath, shortcutPath, A_ScriptDir,, "Run " appDetails.Name " and its companion AHK script", executablePath
+	ExecutableName {
+		get {
+			SplitPath(this.ExecutablePath, &name)
+			return name
 		}
 	}
+
+	FullExecutablePath => this.InstallationDirectory "\" this.ExecutablePath
 }
 
-RunGameAndExitWhenClosed(AppID, ExecutableName) {
-	; don't start the game twice, e.g. when reloading the script
-	if (!ProcessExist(ExecutableName)) {
-		Run("steam://rungameid/" AppID)
+Class Steam {
+ 	static Apps {
+		get {
+			if (!HasProp(this, "_Apps")) {
+				this.LoadAppInfo()
+			}
+			return this._Apps
+		}
 	}
-	ProcessWait(ExecutableName)
-	ProcessWaitClose(ExecutableName)
-	ExitApp()
+
+	static Libraries {
+		get {
+			if (!HasProp(this, "_Libraries")) {
+				this.LoadLibraries()
+			}
+			return this._Libraries
+		}
+	}
+
+	; Locate the `appinfo.vdf` file and then parse it
+	static LoadAppInfo() {
+		data := FileRead("C:\Program Files (x86)\Steam\appcache\appinfo.vdf", "RAW")
+		this.ParseAppInfo(data)
+	}
+
+	; Parses the binary appinfo.vdf from a buffer object `data`
+	static ParseAppInfo(data) {
+		magic := NumGet(data, 0, "UInt")
+		universe := NumGet(data, 4, "UInt")
+
+		apps := Map()
+		offset := 8
+
+		while true {
+			appID := NumGet(data, offset, "UInt")
+			if (appID == 0) {
+				break
+			}
+
+			app := AppInfo(data, &offset)
+			this.EnrichAppInfoWithLibraryData(app)
+
+			apps.Set(appID, app)
+		}
+
+		this._Apps := apps
+	}
+
+	static EnrichAppInfoWithLibraryData(app) {
+		for folder in this.Libraries {
+			appmanifestFile := folder "\steamapps\appmanifest_" app.appID ".acf"
+
+			if (FileExist(appmanifestFile)) {
+				appManifest := ValveKeyValue.ParseTextFromFile(appmanifestFile)
+
+				app.InstallationDirectory := folder "\steamapps\common\" appManifest.AppState.installdir
+			}
+		}
+	}
+
+	static LoadLibraries() {
+		data := FileRead("C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf")
+		vdf := ValveKeyValue.ParseText(data)
+
+		folders := []
+		for index, folder in vdf.libraryfolders.OwnProps() {
+			folders.Push(folder.path)
+		}
+
+		this._Libraries := folders
+	}
+
+	static CheckForAndAskToCreateStartMenuShortcut(appID) {
+		app := this.GetAppInfo(appID)
+		shortcutPath := A_StartMenu "\Programs\Steam\" app.Name ".lnk"
+
+		if (!FileExist(shortcutPath)) {
+			answer := MsgBox("Currently there is no start menu entry for " app.Name ". Do you want to create a start menu entry to launch this AHK script & " app.Name " together?", "Create Start Menu Shortcut", "YesNo")
+
+			if (answer == "Yes") {
+				FileCreateShortcut A_ScriptFullPath, shortcutPath, A_ScriptDir,, "Run " app.Name " and its companion AHK script", app.FullExecutablePath
+			}
+		}
+	}
+
+	; Remove references so AHK can clean up the memory
+	static Cleanup() {
+		this._Apps := unset
+		this._Libraries := unset
+	}
+
+	static RunGameAndExitWhenClosed(AppID, CleanupFunction := unset) {
+		executableName := this.GetAppInfo(AppID).ExecutableName
+
+		; don't start the game twice, e.g. when reloading the script
+		if (!ProcessExist(executableName)) {
+			Run("steam://rungameid/" AppID)
+		}
+
+		this.Cleanup()
+		ProcessWait(executableName)
+		ProcessWaitClose(executableName)
+
+		if (IsSet(CleanupFunction)) {
+			CleanupFunction()
+		}
+
+		ExitApp()
+	}
+
+
+	static GetAppInfo(appID) {
+		return this.Apps.Get(appID)
+	}
 }
