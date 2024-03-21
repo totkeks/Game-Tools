@@ -7,8 +7,8 @@ Global ABM_SETSTATE := 0xA
 Global ABS_NORMAL := 0x0
 Global ABS_AUTOHIDE := 0x1
 
-EnableBorderlessWindow(TargetWidth, TargetHeight) {
-	Hotkey "!q", ToggleBorderlessWindow
+EnableBorderlessWindowHotkey(Key, TargetWidth, TargetHeight) {
+	Hotkey Key, ToggleBorderlessWindow
 
 	ToggleBorderlessWindow(key) {
 		MonitorGetWorkArea(, &WLeft, &WTop, &WRight, &WBottom)
