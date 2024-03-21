@@ -37,7 +37,7 @@ Class AppInfo {
 
 			For index, value in launch.OwnProps() {
 				if (value.config.oslist = "windows") {
-					return value.executable
+					return StrReplace(value.executable, "/", "\")
 				}
 			}
 		}
@@ -119,7 +119,7 @@ Class Steam {
 
 		folders := []
 		for index, folder in vdf.libraryfolders.OwnProps() {
-			folders.Push(folder.path)
+			folders.Push(StrReplace(folder.path, "\\", "\"))
 		}
 
 		this._Libraries := folders
