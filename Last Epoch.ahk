@@ -6,13 +6,13 @@
 #Include <KeyTriggers>
 
 AppID := 899770
-ExecutableName := "Last Epoch.exe"
+ExecutableName := Steam.GetAppInfo(AppID).ExecutableName
+Steam.CheckForAndAskToCreateStartMenuShortcut(AppID)
 
 HotIfWinActive "ahk_exe" ExecutableName
-	EnableBorderlessWindow 2560, 1440
+	EnableBorderlessWindowHotkey "!q", 2560, 1440
 
 	; Automatically Roar after Rampage
 	SendKeyWhenKeyIsHeldFor "f", "Backspace", 300
 
-CheckForAndAskToCreateStartMenuShortcut(AppID)
-RunGameAndExitWhenClosed(AppID, ExecutableName)
+Steam.RunGameAndExitWhenClosed(AppID)
