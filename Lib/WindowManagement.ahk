@@ -11,14 +11,22 @@ EnableBorderlessWindowHotkey(Key, TargetWidth, TargetHeight) {
 	Hotkey Key, ToggleBorderlessWindow
 
 	ToggleBorderlessWindow(key) {
+		static PreviousStyle := 0
+
 		MonitorGetWorkArea(, &WLeft, &WTop, &WRight, &WBottom)
 		Left := Max((WRight - TargetWidth) // 2, 0)
 		Top := Max((WBottom - TargetHeight) // 2, 0)
 		Width := Min(TargetWidth, WRight)
 		Height := Min(TargetHeight, WBottom)
 
-		WinSetStyle "^" WS_CAPTION | WS_SIZEBOX | WS_BORDER, "A"
-		WinMove Left, Top, Width, Height, "A"
+		CurrentStyle := WinGetStyle("A")
+		if (CurrentStyle & WS_CAPTION) {
+			WinSetStyle("-" WS_CAPTION | WS_SIZEBOX | WS_BORDER, "A")
+			WinMove(Left, Top, Width, Height, "A")
+			PreviousStyle := CurrentStyle
+		} else {
+			WinSetStyle(PreviousStyle, "A")
+		}
 	}
 }
 
