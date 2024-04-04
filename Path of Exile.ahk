@@ -9,7 +9,11 @@ AppID := 238960
 ExecutableName := Steam.GetAppInfo(AppID).ExecutableName
 Steam.CheckForAndAskToCreateStartMenuShortcut(AppID)
 
+AwakenedPoeTradeDirectory := EnvGet("LOCALAPPDATA") "\Programs\Awakened PoE Trade"
+AwakenedPoeTradeExecutable := "Awakened PoE Trade.exe"
+
 HotIfWinActive "ahk_exe" ExecutableName
+#HotIf WinActive("ahk_exe" ExecutableName)
 	EnableBorderlessWindowHotkey "!q", 2560, 1440
 
 	; Stash tab scrolling
@@ -34,5 +38,18 @@ HotIfWinActive "ahk_exe" ExecutableName
 	F3::SendChatMessage("/hideout")
 	F4::SendChatMessage("/leave")
 	F5::SendChatMessage("/exit")
+	F6::SendChatMessage("/delve")
 
-Steam.RunGameAndExitWhenClosed(AppID)
+	; Flasks
+	; ~w:: {
+	; 	SendInput "e"
+	; 	SendInput "r"
+	; 	; SendInput "t"
+	; }
+
+CleanupFunction() {
+	ProcessClose(AwakenedPoeTradeExecutable)
+}
+
+Run(AwakenedPoeTradeDirectory "\" AwakenedPoeTradeExecutable, AwakenedPoeTradeDirectory)
+Steam.RunGameAndExitWhenClosed(AppID, CleanupFunction)
