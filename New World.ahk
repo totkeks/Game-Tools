@@ -5,10 +5,12 @@
 #Include <WindowManagement>
 
 AppID := 1063730
-ExecutableName := Steam.GetAppInfo(AppID).ExecutableName
+; override executable name because there is a launcher executable
+ExecutableName := "NewWorld.exe"
 Steam.CheckForAndAskToCreateStartMenuShortcut(AppID)
 
 HotIfWinActive "ahk_exe" ExecutableName
+	EnableAutoHideTaskbar()
 	EnableBorderlessWindowHotkey "!q", 2560, 1440
 
-Steam.RunGameAndExitWhenClosed(AppID)
+Steam.RunGameAndExitWhenClosed(AppID, DisableAutoHideTaskbar, ExecutableName)
