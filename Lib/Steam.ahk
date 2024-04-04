@@ -144,8 +144,12 @@ Class Steam {
 		this._Libraries := unset
 	}
 
-	static RunGameAndExitWhenClosed(AppID, CleanupFunction := unset) {
-		executableName := this.GetAppInfo(AppID).ExecutableName
+	static RunGameAndExitWhenClosed(AppID, CleanupFunction := unset, ExecutableNameOverride := unset) {
+		if (IsSet(ExecutableNameOverride)) {
+			executableName := ExecutableNameOverride
+		} else {
+			executableName := this.GetAppInfo(AppID).ExecutableName
+		}
 
 		; don't start the game twice, e.g. when reloading the script
 		if (!ProcessExist(executableName)) {
