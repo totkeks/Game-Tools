@@ -3,7 +3,6 @@
 
 #Include <Steam>
 #Include <WindowManagement>
-#Include <KeyTriggers>
 
 AppID := 238960
 ExecutableName := Steam.GetAppInfo(AppID).ExecutableName

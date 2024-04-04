@@ -3,7 +3,6 @@
 
 #Include <Steam>
 #Include <WindowManagement>
-#Include <KeyTriggers>
 
 AppID := 289070
 ; override executable name because it defaults to the non-DX12 version
