@@ -32,10 +32,17 @@ Class Steam {
 	; Parses the binary appinfo.vdf from a buffer object `data`
 	static ParseAppInfo(data) {
 		magic := NumGet(data, 0, "UInt")
+		if (magic != 0x07564429) {
+			throw Error("Invalid or unsupported magic number in appinfo: 0x" . Format("{:X}", magic))
+		}
+
 		universe := NumGet(data, 4, "UInt")
+		stringOffset := NumGet(data, 8, "Int64")
+
+		strings := this.ParseStrings(data, stringOffset)
 
 		apps := Map()
-		offset := 8
+		offset := 16
 
 		while true {
 			appID := NumGet(data, offset, "UInt")
@@ -43,13 +50,33 @@ Class Steam {
 				break
 			}
 
-			app := AppInfo(data, &offset)
+			app := AppInfo(data, &offset, strings)
 			this.EnrichAppInfoWithLibraryData(app)
 
 			apps.Set(appID, app)
 		}
 
 		this._Apps := apps
+	}
+
+	static ParseStrings(data, offset) {
+		numStrings := NumGet(data, offset, "UInt")
+		offset += 4
+		strings := []
+
+		Loop numStrings {
+			 str := ""
+
+			 while (char := NumGet(data, offset, "UChar")) {
+				  str .= Chr(char)
+				  offset++
+			 }
+
+			 offset++
+			 strings.Push(str)
+		}
+
+		return strings
 	}
 
 	static EnrichAppInfoWithLibraryData(app) {

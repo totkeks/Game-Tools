@@ -6,7 +6,9 @@
 Class AppInfo {
 	static FIXED_DATA_SIZE := 60
 
-	__New(buf, &offset) {
+	__New(buf, &offset, strings) {
+		this._strings := strings
+
 		; Header, 8 bytes
 		this.appID := NumGet(buf, offset, "UInt"), offset += 4
 		this.size := NumGet(buf, offset, "UInt"), offset += 4
@@ -26,7 +28,7 @@ Class AppInfo {
 	data {
 		get {
 			if (!HasProp(this, "_data")) {
-				this._data := ValveKeyValue.ParseBinary(this.buffer, this.dataOffset, this.size - AppInfo.FIXED_DATA_SIZE)
+				this._data := ValveKeyValue.ParseBinary(this.buffer, this.dataOffset, this.size - AppInfo.FIXED_DATA_SIZE, this._strings)
 			}
 			return this._data
 		}

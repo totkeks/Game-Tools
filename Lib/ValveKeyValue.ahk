@@ -2,7 +2,7 @@
 #SingleInstance Force
 
 class ValveKeyValue {
-	static ParseBinary(data, offset, size) {
+	static ParseBinary(data, offset, size, strings) {
 		initialOffset := offset
 
 		root := {}
@@ -32,28 +32,29 @@ class ValveKeyValue {
 						case 8:
 							stack.RemoveAt(stack.Length)
 							state := "parseType"
+
+						default:
+							throw Error("Unknown value type: " . char)
 					}
 
 				case "parseKey":
-					switch (char) {
-						case 0:
-							switch (valueType) {
-								case "object":
-									nestedObject := {}
-									stack[stack.Length].%key% := nestedObject
-									stack.Push(nestedObject)
-									key := ""
-									state := "parseType"
+					index := NumGet(data, offset, "UInt")
+					key := strings[index+1]
+					offset += 3
 
-								case "string":
-									state := "parseString"
+					switch (valueType) {
+						case "object":
+							nestedObject := {}
+							stack[stack.Length].%key% := nestedObject
+							stack.Push(nestedObject)
+							key := ""
+							state := "parseType"
 
-								case "int":
-									state := "parseInt"
-							}
+						case "string":
+							state := "parseString"
 
-						default:
-							key .= Chr(char)
+						case "int":
+							state := "parseInt"
 					}
 
 				case "parseString":
