@@ -2,7 +2,7 @@
 #SingleInstance Force
 
 #Include <Steam>
-#Include <WindowManagement>
+#Include <Windows>
 #Include <KeyTriggers>
 
 AppID := 899770

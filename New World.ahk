@@ -2,7 +2,7 @@
 #SingleInstance Force
 
 #Include <Steam>
-#Include <WindowManagement>
+#Include <Windows>
 
 AppID := 1063730
 ; override executable name because there is a launcher executable

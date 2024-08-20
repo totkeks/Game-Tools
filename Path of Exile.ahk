@@ -2,7 +2,7 @@
 #SingleInstance Force
 
 #Include <Steam>
-#Include <WindowManagement>
+#Include <Windows>
 
 AppID := 238960
 ExecutableName := Steam.GetAppInfo(AppID).ExecutableName
