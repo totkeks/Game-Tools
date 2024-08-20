@@ -136,6 +136,11 @@ Class Steam {
 
 		this.Cleanup()
 		ProcessWait(executableName)
+		; Workaround for games being restarted by steam as elevated process
+		if (A_IsAdmin) {
+			ProcessWaitClose(executableName)
+			ProcessWait(executableName)
+		}
 		ProcessWaitClose(executableName)
 
 		if (IsSet(CleanupFunction)) {
@@ -144,7 +149,6 @@ Class Steam {
 
 		ExitApp()
 	}
-
 
 	static GetAppInfo(appID) {
 		return this.Apps.Get(appID)
