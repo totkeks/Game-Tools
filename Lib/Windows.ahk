@@ -13,11 +13,14 @@ EnableBorderlessWindowHotkey(Key, TargetWidth, TargetHeight) {
 	ToggleBorderlessWindow(key) {
 		static PreviousStyle := 0
 
-		MonitorGetWorkArea(, &WLeft, &WTop, &WRight, &WBottom)
-		Left := Max((WRight - TargetWidth) // 2, 0)
-		Top := Max((WBottom - TargetHeight) // 2, 0)
-		Width := Min(TargetWidth, WRight)
-		Height := Min(TargetHeight, WBottom)
+		MonitorGetWorkArea(activeMonitor, &WLeft, &WTop, &WRight, &WBottom)
+		WorkAreaWidth := WRight - WLeft
+		WorkAreaHeight := WBottom - WTop
+
+		Left := Max((WorkAreaWidth - TargetWidth) // 2 + WLeft, WLeft)
+		Top := Max((WorkAreaHeight - TargetHeight) // 2 + WTop, WTop)
+		Width := Min(TargetWidth, WorkAreaWidth)
+		Height := Min(TargetHeight, WorkAreaHeight)
 
 		CurrentStyle := WinGetStyle("A")
 		if (CurrentStyle & WS_CAPTION) {
@@ -76,4 +79,22 @@ RequireAdminPrivileges() {
 					Run '*RunAs "' A_AhkPath '" /restart "' A_ScriptFullPath '"'
 		}
 	}
+}
+
+GetMonitorUnderCursor() {
+	CoordMode("Mouse", "Screen")
+	MouseGetPos(&mouseX, &mouseY)
+	monitorCount := SysGet(80)
+
+	Loop monitorCount {
+		MonitorGetWorkArea(A_Index, &monitorLeft, &monitorTop, &monitorRight, &monitorBottom)
+
+		if (mouseX >= monitorLeft && mouseX < monitorRight && mouseY >= monitorTop && mouseY < monitorBottom) {
+			activeMonitor := A_Index
+			break
+		}
+	}
+
+	CoordMode("Mouse", "Window")
+	return activeMonitor
 }
